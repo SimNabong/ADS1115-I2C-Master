@@ -6,7 +6,7 @@ module ADS_FREQ(
 
 	reg [10:0] counter; //counter register
 
-	always@(posedge clk) begin //updates and increments the counter
+	always@(posedge clk)begin //updates and increments the counter
 		if(reset)begin
 			mod_clk <= 1'b0;
 			counter <= 11'd0;
