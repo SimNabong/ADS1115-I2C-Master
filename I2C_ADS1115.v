@@ -17,13 +17,8 @@ module I2C_ADS1115( //Top Module
 	inout wire SDA,
 	output SCL,
 	output wire [3:0] state_checkw //DUT only, DO NOT CONNECT
-	//output mod_clkw, //DUT only, genrated clock from the ADS freq module. Comment out and uncomment the other mod_clkw
-	//output [2:0] mclk_counterW, //DUT only, do not connect
-	//output [3:0] bit_counterW, //DUT only, do not connect
-	//output [1:0] byte_countW //DUT only, do not connect
 );
-	
-	//wire [15:0] converted_data; //sampled/converted data from the ads1115
+
 	wire mod_clkw; //Comment In if not DUT
 
 	ADS_FREQ ADSFInst(
@@ -39,11 +34,7 @@ module I2C_ADS1115( //Top Module
 		.reset(reset),
 		.SDA(SDA),
 		.SCL(SCL),
-		//.converted_data(converted_data),
 		.state_check(state_checkw)
-		//.mclk_counterW(mclk_counterW), //TBD for DUT
-		//.bit_counterW(bit_counterW), //TBD for DUT
-		//.byte_countW(byte_countW)    //TBD for DUT
 	);
 
 endmodule
