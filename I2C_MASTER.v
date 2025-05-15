@@ -43,23 +43,19 @@ module I2C_MASTER(
 	input reset,
 	inout SDA,
 	output reg SCL,
-	//output reg [15:0] converted_data,
-	output wire [3:0] state_check //state checker
-	//output wire [2:0] mclk_counterW, //DUT only, do not connect
-	//output wire [3:0] bit_counterW, //DUT only, do not connect
-	//output wire [1:0] byte_countW
+	output wire [3:0] state_check //tells what state the i2c master is in
 );
 
 	parameter INITIAL=4'd0,			     	 	
-				 START=4'd1,
-				 TARGET_ADDRESS=4'd2, 	
-				 TARGET_ACK=4'd3,
-				 ADDRESS_POINT_REG=4'd4,
-				 CONFIG_REGISTER=4'd5,
-				 CONVERSION_REG=4'd6,
-				 MASTER_ACK=4'd7,
-				 STOP=4'd8,	
-				 ERROR=4'd9;
+		  START=4'd1,
+		  TARGET_ADDRESS=4'd2, 	
+		  TARGET_ACK=4'd3,
+		  ADDRESS_POINT_REG=4'd4,
+		  CONFIG_REGISTER=4'd5,
+		  CONVERSION_REG=4'd6,
+		  MASTER_ACK=4'd7,
+		  STOP=4'd8,	
+		  ERROR=4'd9;
 				 
 	reg [3:0] state, next_state;
 	reg [7:0] slave_address;
@@ -73,10 +69,6 @@ module I2C_MASTER(
 	reg CR_flag; //if HIGH, then CONFIG_REGISTER has been configured
 	reg read_notwrite; //if HIGH then the master is reading, else it is writing
 	reg R_ADDR_Pointer; //address point registers' LSB. If high then then it points to configuration reg, else to conversion reg 
-	
-	//assign mclk_counterW = mclk_counter; //for DUT
-	//assign bit_counterW  = bit_counter; //for DUT
-	//assign byte_countW	= byte_count;    //for DUT
 	
 	assign state_check = next_state;
 	
@@ -97,41 +89,41 @@ module I2C_MASTER(
 	always@(*)begin //state flow
 		case(state)
 		
-			INITIAL: 			 next_state = (start)?START:
-														state;
+			INITIAL: 		 next_state = (start)? START:
+								       state;
 			
-			START: 				 next_state = (mclk_counter==3'd6)?TARGET_ADDRESS: 
-														state;
+			START: 		 	 next_state = (mclk_counter==3'd6)? TARGET_ADDRESS: 
+										    state;
 			
-			TARGET_ADDRESS: 	 next_state = (mclk_counter==3'd6 && bit_counter==4'd8)?TARGET_ACK: 
-														state;
+			TARGET_ADDRESS: 	 next_state = (mclk_counter==3'd6 && bit_counter==4'd8)? TARGET_ACK: 
+													 state;
 			
-			TARGET_ACK:			 next_state = (mclk_counter==3'd6 && (APR_count==0 ||(APR_count==2'd1 && CR_flag && byte_count==2'd0)))?ADDRESS_POINT_REG:
-													  (mclk_counter==3'd6 && ~read_notwrite && (byte_count==2'd2 || APR_count==2'd2))?STOP:
-													  (mclk_counter==3'd6 && ((APR_count==2'd1 && ~CR_flag) || byte_count==2'd1))?CONFIG_REGISTER:
-													  (mclk_counter==3'd6 && read_notwrite)?CONVERSION_REG: 
-													  (mclk_counter==3'd6 && MSDA)?ERROR:
-														state;
+			TARGET_ACK:		 next_state = (mclk_counter==3'd6 && (APR_count==0 ||(APR_count==2'd1 && CR_flag && byte_count==2'd0)))? ADDRESS_POINT_REG:
+							      (mclk_counter==3'd6 && ~read_notwrite && (byte_count==2'd2 || APR_count==2'd2))?		 STOP:
+							      (mclk_counter==3'd6 && ((APR_count==2'd1 && ~CR_flag) || byte_count==2'd1))?		 CONFIG_REGISTER:
+							      (mclk_counter==3'd6 && read_notwrite)?							 CONVERSION_REG: 
+							      (mclk_counter==3'd6 && MSDA)?								 ERROR:
+							      												 state;
 												 
-			ADDRESS_POINT_REG: next_state = (mclk_counter==3'd6 && bit_counter==4'd8)?TARGET_ACK: 
-														state;
+			ADDRESS_POINT_REG:       next_state = (mclk_counter==3'd6 && bit_counter==4'd8)? TARGET_ACK: 
+													 state;
 														
-			CONFIG_REGISTER:	 next_state = (mclk_counter==3'd6 && bit_counter==4'd8)?TARGET_ACK: 
-														state; 
+			CONFIG_REGISTER:	 next_state = (mclk_counter==3'd6 && bit_counter==4'd8)? TARGET_ACK: 
+													 state; 
 														
-			CONVERSION_REG:	 next_state = (mclk_counter==3'd6 && bit_counter==4'd8)?MASTER_ACK: 
-														state;
+			CONVERSION_REG:	         next_state = (mclk_counter==3'd6 && bit_counter==4'd8)? MASTER_ACK: 
+													 state;
 												
-			MASTER_ACK:			 next_state = (mclk_counter==3'd6 && bit_counter==4'd0 && byte_count ==2'd1)?CONVERSION_REG:
-													  (mclk_counter==3'd6 && bit_counter==4'd0 && byte_count ==2'd2)?STOP: 
-														state;
+			MASTER_ACK:		 next_state = (mclk_counter==3'd6 && bit_counter==4'd0 && byte_count ==2'd1)? CONVERSION_REG:
+							      (mclk_counter==3'd6 && bit_counter==4'd0 && byte_count ==2'd2)? STOP: 
+															      state;
 			
-			STOP:					 next_state = (start && mclk_counter==3'd6 && bit_counter==4'd1)?START: 
-														state;
+			STOP:			 next_state = (start && mclk_counter==3'd6 && bit_counter==4'd1)? START: 
+														  state;
 														
-			ERROR:				 next_state = INITIAL;
+			ERROR:			 next_state = INITIAL;
 			
-			default: 			 next_state = INITIAL;
+			default: 		 next_state = INITIAL;
 			
 		endcase
 	end
@@ -139,17 +131,16 @@ module I2C_MASTER(
 	always@(posedge clk)begin //what happens during each state
 	
 		if(reset)begin
-			MSDA 				<= 1'b1;
-			SCL 				<= 1'b1;
+			MSDA 		<= 1'b1;
+			SCL 		<= 1'b1;
 			mclk_counter	<= 3'd1;
 			bit_counter 	<= 4'd0;
-			APR_count 		<= 2'd0;
-			byte_count 		<= 2'd0;
-			CR_flag			<= 1'b0;
-			//converted_data <= 16'd0;
+			APR_count 	<= 2'd0;
+			byte_count 	<= 2'd0;
+			CR_flag		<= 1'b0;
 			read_notwrite	<= 1'b0;
 			R_ADDR_Pointer	<= 1'b1;
-			register_config<= 16'b1000_0100_1000_0011;
+			register_config <= 16'b1000_0100_1000_0011;
 			slave_address	<= {7'b1001_000, read_notwrite};
 		end
 		
@@ -157,50 +148,49 @@ module I2C_MASTER(
 			case(next_state)
 			
 				INITIAL:begin
-					MSDA 				<= 1'b1;
-					SCL 				<= 1'b1;
+					MSDA 		<= 1'b1;
+					SCL 		<= 1'b1;
 					mclk_counter	<= 3'd1;
 					bit_counter 	<= 4'd0;
-					APR_count 		<= 2'd0;
-					byte_count 		<= 2'd0;
-					CR_flag			<= 1'b0;
-					//converted_data <= 16'd0;
+					APR_count 	<= 2'd0;
+					byte_count 	<= 2'd0;
+					CR_flag		<= 1'b0;
 					read_notwrite	<= 1'b0;
 					R_ADDR_Pointer	<= 1'b1;
 					slave_address	<= {7'b1001_000, read_notwrite};
-					register_config<= 16'b1000_0100_1000_0011;
+					register_config <= 16'b1000_0100_1000_0011;
 				end
 				
 				START:begin
 					mclk_counter <= mclk_counter + 1'b1;
 					if(mclk_counter==3'd1 && APR_count==2'd1) //changes pointer to conversion from configuration
-						R_ADDR_Pointer<= 1'b0;
+						R_ADDR_Pointer <= 1'b0;
 					else if(mclk_counter==3'd1 && APR_count==2'd2) //changes from write to read
-						read_notwrite <= 1'b1;
+						read_notwrite  <= 1'b1;
 					else if(mclk_counter==3'd2)
-						MSDA 	  		  <= 1'b0;
+						MSDA 	       <= 1'b0;
 					else if(mclk_counter==3'd4)
-						SCL 	  		  <= 1'b0;
+						SCL	       <= 1'b0;
 					else begin
-						slave_address <= {7'b1001_000, read_notwrite};
-						byte_count 	  <= 2'd0;
-						bit_counter	  <= 4'd0;
+						slave_address  <= {7'b1001_000, read_notwrite};
+						byte_count     <= 2'd0;
+						bit_counter    <= 4'd0;
 					end
 				end
 				
 				TARGET_ADDRESS:begin
 					if(mclk_counter==3'd6)begin
-						bit_counter 	<= bit_counter + 1'b1;
-						mclk_counter 	<= 3'd1;
-						MSDA 				<= slave_address[7];
-						slave_address	<= {slave_address[6:0],slave_address[7]};
+						bit_counter   <= bit_counter + 1'b1;
+						mclk_counter  <= 3'd1;
+						MSDA	      <= slave_address[7];
+						slave_address <= {slave_address[6:0],slave_address[7]};
 					end
 					else if(mclk_counter==3'd2 || mclk_counter==3'd4)begin //SCL condition
-						mclk_counter 	<= mclk_counter + 1'b1;
-						SCL 				<= ~SCL;
+						mclk_counter  <= mclk_counter + 1'b1;
+						SCL 	      <= ~SCL;
 					end
 					else
-						mclk_counter 	<= mclk_counter + 1'b1;
+						mclk_counter  <= mclk_counter + 1'b1;
 				end
 				
 				TARGET_ACK:begin
@@ -210,11 +200,11 @@ module I2C_MASTER(
 					end
 					else if(mclk_counter==3'd2 || mclk_counter==3'd4)begin //SCL condition
 						mclk_counter <= mclk_counter + 1'b1;
-						SCL 			 <= ~SCL;
+						SCL 	     <= ~SCL;
 					end
 					else if(mclk_counter==3'd3)begin //SCL condition
 						mclk_counter <= mclk_counter + 1'b1;
-						MSDA			 <= SDA;
+						MSDA	     <= SDA;
 					end
 					else
 						mclk_counter <= mclk_counter + 1'b1;
@@ -222,19 +212,19 @@ module I2C_MASTER(
 				
 				ADDRESS_POINT_REG:begin
 					if(mclk_counter==3'd6 && ~(bit_counter==4'd7))begin
-						MSDA 			 <= 1'b0;
+						MSDA 	     <= 1'b0;
 						mclk_counter <= 3'd1;
 						bit_counter  <= bit_counter + 1'b1;
 					end
 					else if(mclk_counter==3'd6 && bit_counter==4'd7)begin
 						mclk_counter <= 1'b1;
-						bit_counter	 <= bit_counter + 1'b1;
-						MSDA			 <= R_ADDR_Pointer;
-						APR_count	 <= APR_count + 1'b1;
+						bit_counter  <= bit_counter + 1'b1;
+						MSDA	     <= R_ADDR_Pointer;
+						APR_count    <= APR_count + 1'b1;
 					end
 					else if(mclk_counter==3'd2 || mclk_counter==3'd4)begin //SCL condition
 						mclk_counter <= mclk_counter + 1'b1;
-						SCL 			 <= ~SCL;
+						SCL 	     <= ~SCL;
 					end
 					else
 						mclk_counter <= mclk_counter + 1'b1;
@@ -242,55 +232,54 @@ module I2C_MASTER(
 				
 				CONVERSION_REG:begin
 					if(mclk_counter==3'd6)begin
-						mclk_counter 	<= 3'd1;
-						bit_counter		<= bit_counter + 1'b1;
+						mclk_counter <= 3'd1;
+						bit_counter  <= bit_counter + 1'b1;
 					end						
 					else if(mclk_counter==3'd2 || mclk_counter==3'd4)begin //SCL condition
-						mclk_counter 	<= mclk_counter + 1'b1;
-						SCL 				<= ~SCL;
+						mclk_counter <= mclk_counter + 1'b1;
+						SCL 	     <= ~SCL;
 					end
 					else if(mclk_counter==3'd3)begin
-						mclk_counter 	<= mclk_counter + 1'b1;
-						//converted_data <= {//converted_data[14:0],SDA};	
+						mclk_counter <= mclk_counter + 1'b1;	
 					end
 					else
-						mclk_counter 	<= mclk_counter + 1'b1;
+						mclk_counter <= mclk_counter + 1'b1;
 				end
 				
 				MASTER_ACK:begin
 					if(mclk_counter==3'd6 && bit_counter==4'd8)begin
 						bit_counter  <= 4'd0;
 						mclk_counter <= 3'd1;
-						MSDA 			 <= 1'b0;
-						byte_count	 <= byte_count + 1'b1;
+						MSDA 	     <= 1'b0;
+						byte_count   <= byte_count + 1'b1;
 					end
 					else if(mclk_counter==3'd2 || mclk_counter==3'd4)begin //SCL condition
 						mclk_counter <= mclk_counter + 1'b1;
-						SCL 			 <= ~SCL;
+						SCL 	     <= ~SCL;
 					end
 					else
 						mclk_counter <= mclk_counter + 1'b1;
 				end
 				
 				CONFIG_REGISTER:begin
-					CR_flag		 <= 1'b1;
+					CR_flag	<= 1'b1;
 					if(mclk_counter==3'd6 && byte_count==2'd1)begin
 						mclk_counter 	<= 3'd1;
-						MSDA				<= 1'b1;
+						MSDA		<= 1'b1;
 					end
 					else if(mclk_counter==3'd5 && (byte_count==2'd1 || (byte_count==2'd0 && bit_counter==4'd8)))begin
-						byte_count		<= byte_count + 1'b1;
+						byte_count	<= byte_count + 1'b1;
 						mclk_counter	<= mclk_counter + 1'b1;
 					end	
 					else if(mclk_counter==3'd6)begin
 						bit_counter 	<= bit_counter + 1'b1;
 						mclk_counter 	<= 3'd1;
-						MSDA 				<= register_config[15];
-						register_config<= {register_config[14:0],register_config[15]};
+						MSDA 		<= register_config[15];
+						register_config <= {register_config[14:0],register_config[15]};
 					end
 					else if((mclk_counter==3'd2 || mclk_counter==3'd4) && ~(byte_count==2'd1))begin //SCL condition
 						mclk_counter 	<= mclk_counter + 1'b1;
-						SCL 				<= ~SCL;
+						SCL 		<= ~SCL;
 					end
 					else
 						mclk_counter 	<= mclk_counter + 1'b1;
@@ -322,7 +311,7 @@ module I2C_MASTER(
 					mclk_counter 	<= 3'd1;
 					bit_counter 	<= 4'd0;
 					slave_address	<= {7'b1001_000, read_notwrite};
-					register_config<= 16'b1000_0100_1000_0011;
+					register_config <= 16'b1000_0100_1000_0011;
 				end
 				
 			endcase
